@@ -1,0 +1,191 @@
+import "./update.scss";
+import Sidebar from "../../components/sidebar/Sidebar";
+import Navbar from "../../components/navbar/Navbar";
+import DriveFolderUploadOutlinedIcon from "@mui/icons-material/DriveFolderUploadOutlined";
+import { useState, useEffect } from "react";
+import { useLocation, useNavigate } from 'react-router-dom';
+import { quizInputs } from "../../formSource";
+
+
+const QuizUpdate = ({ title }) => {
+
+    // Extracting quizId using regular expressions
+    const location = useLocation();
+    const quizId = location.pathname.match(/\/quizList\/update\/(\d+)/)?.[1];
+
+    // Initializing state
+    const [file, setFile] = useState(null);
+    const [inputValues, setInputValues] = useState("");
+    let [token] = useState(localStorage.getItem("token"));
+
+    const redirectToLogin = () => {
+        window.location.href = "/notFound";
+    };
+
+    const navigate = useNavigate();
+
+    useEffect(() => {
+        const fetchQuiz = async () => {
+            try {
+                const response = await fetch(`http://localhost:8000/api/admin/quizbyid/${quizId}`, {
+                    method: 'GET',
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                        "Content-Type": "application/json",
+                    },
+                });
+                if (!response.ok) {
+                    if (response.status === 401 || response.status === 498) {
+                        console.error("Unauthorized: Please log in");
+                        window.location.href = "/notFound";
+                    } else {
+                        throw new Error('Failed to fetch quiz');
+                    }
+                }
+                const data = await response.json();
+                setInputValues(data.data[0]);
+                setFile(data.data[0].picture);
+                localStorage.setItem("quizData", JSON.stringify(data));
+
+            } catch (error) {
+                console.error(error);
+            }
+        };
+
+        if (quizId) {
+            fetchQuiz();
+        }
+    }, [quizId]);
+    // console.log("quiz in a state:", file);
+
+    const handleInputChange = (e) => {
+        setInputValues({
+            ...inputValues,
+            [e.target.name]: e.target.value
+        });
+    };
+
+    const handleUpdate = async (e) => {
+        e.preventDefault();
+
+        console.log("inputValues", inputValues);
+        const formData = {
+            quiz_id: parseInt(quizId),
+            category_id: parseInt(inputValues.category_id),
+            quiz_no: inputValues.quiz_no,
+            picture: file || "",
+            quiz_name: inputValues.quiz_name,
+            no_of_questions: parseInt(inputValues.no_of_questions),
+            description: inputValues.description,
+            status: parseInt(inputValues.status),
+            duration: parseInt(inputValues.duration),
+            no_of_attempts: inputValues.no_of_attempts,
+        };
+
+        console.log("formData", formData);
+
+        try {
+            const response = await fetch("http://localhost:8000/api/admin/updatequiz", {
+                method: "PATCH",
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify(formData),
+            });
+
+            if (!response.ok) {
+                const data = await response.json();
+                if (data.code === 401 || data.code === 498) {
+                    console.error("Unauthorized: Please log in");
+                    window.location.href = "/notFound";
+                }
+            } else {
+                const data = await response.json();
+                console.log("Response from API", data);
+                // Navigate to the desired page after API response
+                navigate(`/quizList/${quizId}`);
+            }
+        } catch (error) {
+            console.error(error);
+        }
+    };
+
+
+    return (
+        <>
+            {!token && redirectToLogin()}
+            {token && (
+                <div className="update">
+                    <Sidebar />
+                    <div className="updateContainer">
+                        <Navbar />
+                        <div className="top">
+                            <h1>{title}</h1>
+                        </div>
+                        <div className="bottom">
+                            <div className="left">
+                                <img
+                                    src={
+                                        file
+                                    }
+                                    alt=""
+                                    className="itemImg"
+                                />
+                            </div>
+                            <div className="right">
+                                <form onSubmit={handleUpdate}>
+                                    <div className="formInput">
+                                        <label htmlFor="file">
+                                            Image: <DriveFolderUploadOutlinedIcon className="icon" />
+                                        </label>
+                                        <input
+                                            type="file"
+                                            id="file"
+                                            onChange={(e) => setFile(e.target.files[0])}
+                                            style={{ display: "none" }}
+                                        />
+                                    </div>
+                                    {quizInputs.map((input) => (
+                                        <div className="formInput" key={input.id}>
+                                            <label>{input.label}</label>
+                                            <input
+                                                type={input.type}
+                                                placeholder={input.placeholder}
+                                                name={input.fieldName}
+                                                value={inputValues[input.fieldName] || ''}
+                                                onChange={handleInputChange}
+                                                required
+                                                // inputMode={input.fieldName === 'no_of_quiz' ? 'numeric' : undefined}
+                                            />
+                                        </div>
+                                    ))}
+                                    <div style={{ clear: "both" }} className="formUpdate">
+                                        <button
+                                            style={{ float: "right" }}
+                                        // onClick={() => navigate(`/categories/${quizId}`)}
+                                        >
+                                            Update
+                                        </button>
+                                    </div>
+                                    <div>
+                                        <button
+                                            type="button"
+                                            style={{ float: "right" }}
+                                            onClick={() => navigate(`/quizList/${quizId}`)}
+                                        >
+                                            Cancel
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                )
+            }
+        </>
+    );
+};
+
+export default QuizUpdate;

@@ -1,0 +1,38 @@
+.testHome {
+    display: flex;
+
+    .homeContainer {
+        flex: 6;
+
+        .beatLoader{
+            display: flex;
+            justify-content: space-evenly;
+        }
+        .widgets {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+            padding: 20px;
+
+            .widget-wrapper {
+                width: 100%;
+            }
+        }
+
+        .charts {
+            padding: 20px;
+        }
+
+        .listContainer {
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            margin: 20px;
+
+            .listTitle {
+                font-weight: 500;
+                color: #555;
+                margin-bottom: 15px;
+            }
+        }
+    }
+}
